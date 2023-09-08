@@ -71,7 +71,8 @@ Caption "NSIS ${VERSION}${NAMESUFFIX} Setup"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\nsis3-uninstall.ico"
 
 !define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Header\nsis3-branding.bmp"
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Header\nsis3-branding-r.bmp"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${NSISDIR}\Contrib\Graphics\Wizard\nsis3-branding.bmp"
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -148,7 +149,6 @@ ${MementoSection} "NSIS Core Files (required)" SecCore
 
   SectionIn 1 2 3 RO
   SetOutPath $INSTDIR
-  RMDir /r $SMPROGRAMS\NSIS
 
   IfFileExists $INSTDIR\nsisconf.nsi "" +2
   Rename $INSTDIR\nsisconf.nsi $INSTDIR\nsisconf.nsh
@@ -218,6 +218,7 @@ ${MementoSection} "NSIS Core Files (required)" SecCore
   File ..\Include\Win\WinUser.nsh
   File ..\Include\Win\COM.nsh
   File ..\Include\Win\Propkey.nsh
+  File ..\Include\Win\RestartManager.nsh
 
   SetOutPath $INSTDIR\Docs\StrFunc
   File ..\Docs\StrFunc\StrFunc.txt
@@ -307,6 +308,7 @@ ${MementoSection} "Script Examples" SecExample
   File ..\Examples\makensis.nsi
   File ..\Examples\example1.nsi
   File ..\Examples\example2.nsi
+  File ..\Examples\AppGen.nsi
   File ..\Examples\install-per-user.nsi
   File ..\Examples\install-shared.nsi
   File ..\Examples\waplugin.nsi
@@ -331,6 +333,7 @@ ${MementoSection} "Script Examples" SecExample
   File ..\Examples\WordFunc.ini
   File ..\Examples\WordFuncTest.nsi
   File ..\Examples\Memento.nsi
+  File ..\Examples\MultiUser.nsi
   File ..\Examples\unicode.nsi
   File ..\Examples\NSISMenu.nsi
 
@@ -353,28 +356,15 @@ ${MementoSection} "Script Examples" SecExample
 
 ${MementoSectionEnd}
 
-!ifndef NO_STARTMENUSHORTCUTS
-${MementoSection} "Start Menu and Desktop Shortcuts" SecShortcuts
+${MementoSection} "Start Menu Shortcut" SecShortcuts
 
   SetDetailsPrint textonly
-  DetailPrint "Installing Start Menu and Desktop Shortcuts..."
+  DetailPrint "Installing Start Menu shortcut..."
   SetDetailsPrint listonly
 
-!else
-${MementoSection} "Desktop Shortcut" SecShortcuts
-
-  SetDetailsPrint textonly
-  DetailPrint "Installing Desktop Shortcut..."
-  SetDetailsPrint listonly
-
-!endif
   SectionIn 1 2
   SetOutPath $INSTDIR
-!ifndef NO_STARTMENUSHORTCUTS
   CreateShortcut "$SMPROGRAMS\NSIS${NAMESUFFIX}.lnk" "$INSTDIR\NSIS.exe"
-!endif
-
-  CreateShortcut "$DESKTOP\NSIS${NAMESUFFIX}.lnk" "$INSTDIR\NSIS.exe"
 
 ${MementoSectionEnd}
 
@@ -590,7 +580,7 @@ ${MementoSection} "Splash" SecPluginsSplash
 
   SectionIn 1
 
-  !insertmacro InstallPlugin splash
+  !insertmacro InstallPlugin Splash
   SetOutPath $INSTDIR\Docs\Splash
   File ..\Docs\Splash\splash.txt
   SetOutPath $INSTDIR\Examples\Splash
@@ -605,7 +595,7 @@ ${MementoSection} "AdvSplash" SecPluginsSplashT
 
   SectionIn 1
 
-  !insertmacro InstallPlugin advsplash
+  !insertmacro InstallPlugin AdvSplash
   SetOutPath $INSTDIR\Docs\AdvSplash
   File ..\Docs\AdvSplash\advsplash.txt
   SetOutPath $INSTDIR\Examples\AdvSplash
@@ -697,7 +687,7 @@ ${MementoSection} "NSISdl" SecPluginsNSISDL
 
   SectionIn 1
 
-  !insertmacro InstallPlugin nsisdl
+  !insertmacro InstallPlugin NSISdl
   SetOutPath $INSTDIR\Docs\NSISdl
   File ..\Docs\NSISdl\ReadMe.txt
   File ..\Docs\NSISdl\License.txt
@@ -835,9 +825,9 @@ Section -post
   WriteRegDword HKLM "Software\NSIS" "VersionBuild" "${VER_BUILD}"
 !endif
 
-  WriteRegExpandStr HKLM "${REG_UNINST_KEY}" "UninstallString" '"$INSTDIR\uninst-nsis.exe"'
-  ;WriteRegStr HKLM "${REG_UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninst-nsis.exe" /S' ; Ideally WACK would use this
-  WriteRegExpandStr HKLM "${REG_UNINST_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKLM "${REG_UNINST_KEY}" "UninstallString" '"$INSTDIR\uninst-nsis.exe"'
+  WriteRegStr HKLM "${REG_UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninst-nsis.exe" /S'
+  WriteRegStr HKLM "${REG_UNINST_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayName" "Nullsoft Install System${NAMESUFFIX}"
   WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayIcon" "$INSTDIR\uninst-nsis.exe,0"
   WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayVersion" "${VERSION}"
@@ -867,7 +857,7 @@ SectionEnd
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecCore} "The core files required to use NSIS (compiler etc.)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecExample} "Example installation scripts that show you how to use NSIS"
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} "Adds icons to your start menu and your desktop for easy access"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecShortcuts} "Add icon to your start menu for easy access"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecInterfaces} "User interface designs that can be used to change the installer look and feel"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecInterfacesModernUI} "A modern user interface like the wizards of recent Windows versions"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecInterfacesDefaultUI} "The default NSIS user interface which you can customize to make your own UI"
@@ -1077,7 +1067,7 @@ Section Uninstall
   SetDetailsPrint listonly
 
   Delete "$SMPROGRAMS\NSIS${NAMESUFFIX}.lnk"
-  Delete "$DESKTOP\NSIS${NAMESUFFIX}.lnk"
+  Delete "$DESKTOP\NSIS${NAMESUFFIX}.lnk" ; Remove legacy shortcut
   Delete $INSTDIR\makensis.exe
   Delete $INSTDIR\makensisw.exe
   Delete $INSTDIR\NSIS.exe
